@@ -34,7 +34,7 @@ Se implementó una solucion que permite:
    - Predicción con cada modelo
    - Construcción del dataset de resultados
 
-5. Visualización
+4. Visualización
   - Comparación entre datos reales y predicciones
   - Generación de gráficos
  
