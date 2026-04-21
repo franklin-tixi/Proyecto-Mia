@@ -1,25 +1,49 @@
+# =========================
+# 1. LIBRERÍAS
+# =========================
+
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-df = pd.read_excel("data/raw/Data Set MIA.xlsx")
+# ==========================================================================
+# 2. CARGA DE DATOS
+# ==========================================================================
 
-df = df[['Year', 'Period', 'Saldo']].copy()
-df = df.dropna()
+df = pd.read_excel('/content/DataSetMIA.xlsx')
+print("Archivo cargado exitosamente...!")
 
-df['Year'] = pd.to_numeric(df['Year'], errors='coerce')
-df['Period'] = pd.to_numeric(df['Period'], errors='coerce')
-df['Saldo'] = pd.to_numeric(df['Saldo'], errors='coerce')
+# ==========================================================================
+# CONVERTIR GL DATE
+# ==========================================================================
 
-df = df.dropna()
+df['GL Date'] = pd.to_numeric(df['GL Date'], errors='coerce')
+df['fecha'] = pd.to_datetime('1899-12-30') + pd.to_timedelta(df['GL Date'], unit='D')
 
-df['Year'] = df['Year'].astype(int)
-df['Period'] = df['Period'].astype(int)
+# ==========================================================================
+# 3. LIMPIEZA
+# ==========================================================================
 
-df_grouped = df.groupby(['Year', 'Period'], as_index=False)['Saldo'].sum()
+columnas = df.columns.tolist()
+print(columnas)
 
-df_grouped['time_real'] = df_grouped['Year'] + (df_grouped['Period'] - 1) / 12
-base_time = df_grouped['time_real'].min()
-df_grouped['time'] = df_grouped['time_real'] - base_time
+df.columns = df.columns.str.strip()
+df = df.rename(columns={'JDEAccounts.BUDGET LOCATION': 'Location'})
+df = df.rename(columns={'Saldo': 'Costo'})
 
-df_grouped.to_csv("data/processed/saldo_mensual.csv", index=False)
 
-print(df_grouped.head())
+# ==========================================================================
+# 4. FEATURE ENGINEERING
+# ==========================================================================
+
+df = df.sort_values(['Account', 'Year', 'Period'])
+df['Lag_1'] = df.groupby('Account')['Costo'].shift(1)
+df['Lag_2'] = df.groupby('Account')['Costo'].shift(2)
+df['Rolling_mean_3'] = df.groupby('Account')['Costo'].transform(
+    lambda x: x.rolling(3).mean()
+)
+df['Year_Period'] = df['Year'] * 100 + df['Period']
